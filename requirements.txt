@@ -1,0 +1,6 @@
+joblib
+numpy==1.26.4
+openpyxl
+pandas
+scikit_learn==1.6.1
+pytorch== 2.4.0
