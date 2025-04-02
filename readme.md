@@ -8,7 +8,7 @@ pip install -r requirements.txt
 
 ## 2. Training the Models
 
-The spectra-to-compositions (S2C) model uses spectral descriptors to predict metal compositions.
+The Spectra-to-Compositions (S2C) model uses spectral descriptors to predict metal compositions.
 
 The S2C model should be trained by the following command:
 
@@ -16,7 +16,7 @@ The S2C model should be trained by the following command:
 python s2c.py
 ```
 
-The spectra-to-performances (S2P) model is employed to obtain the relationships between spectral descriptors and measured performances.
+The Spectra-to-Performances (S2P) model is employed to obtain the relationships between spectral descriptors and measured performances.
 
 The S2P model should be trained by the following command:
 

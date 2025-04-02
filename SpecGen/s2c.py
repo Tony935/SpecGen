@@ -7,7 +7,6 @@ import os
 import time
 
 import joblib
-import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
@@ -15,11 +14,17 @@ from sklearn.preprocessing import StandardScaler
 
 from utils import Callback, Model
 
-data_x = pd.read_excel('data/data.xlsx', sheet_name='UV').values[:, np.newaxis, :]
-data_y = pd.read_excel('data/data.xlsx', sheet_name='metals')
+data_x = pd.read_excel('../data/data.xlsx', sheet_name='UV').values[:, None]
+data_y = pd.read_excel('../data/data.xlsx', sheet_name='metals')
 col = data_y.columns  # ['Co', 'Ni', 'Cu', 'Mg', 'Cd', 'Zn']
+dropout = {'Co': 0.25, 'Ni': 0.25, 'Cu': 0.25, 'Mg': 0.5, 'Cd': 0.5, 'Zn': 0.5}
 
 file = 'model/S2C_Model'
+if os.path.isdir(file):
+    i = 1
+    while os.path.isdir(f'{file}_{i}'):
+        i += 1
+    file = f'{file}_{i}'
 os.mkdir(file)
 
 for m in col:
@@ -34,7 +39,7 @@ for m in col:
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=8, shuffle=True)
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=8, shuffle=True)
 
-    model = Model(data_y_.shape[1], dropout=0.5).cuda()
+    model = Model(data_y_.shape[1], dropout=dropout[m]).cuda()
     loss_func = torch.nn.L1Loss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # weight_decay=1e-3
     scheduler = Callback(optimizer, factor=0.5, patience=50, min_lr=1e-6)

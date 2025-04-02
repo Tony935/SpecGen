@@ -1,37 +1,32 @@
 # -*- coding: utf-8 -*-
 """
-:File: vae.py
+:File: s2p_lstm.py
 :Author: zhoudl@mail.ustc.edu.cn
 """
 import os
 import time
 
+import joblib
 import pandas as pd
-import torch
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
-from utils import Callback, VAE
+from utils_s2p import *
 
-
-def loss_function(recon_x, x, mu, logvar, beta):
-    BCE = torch.nn.functional.l1_loss(recon_x, x)
-    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=-1).mean()
-    return BCE + KLD * beta
-
-
-data_x = pd.read_excel('data/data.xlsx', sheet_name='UV').values
-data_y = pd.read_excel('data/data.xlsx', sheet_name='metals').values
+data_x = pd.read_excel('../data/data.xlsx', sheet_name='UV').values[:, :, None]
+data_y = pd.read_excel('../data/data.xlsx', sheet_name='overpotential').values
 seed = 0
 x_train, x_test, y_train, y_test = train_test_split(data_x, data_y, test_size=0.2, random_state=seed)
-train_data = torch.Tensor(x_train).cuda()
-test_data = torch.Tensor(x_test).cuda()
+norm = StandardScaler().fit(y_train)
+y_train_ = norm.transform(y_train)
+y_test_ = norm.transform(y_test)
+train_data = torch.utils.data.StackDataset(torch.Tensor(x_train).cuda(), torch.Tensor(y_train_).cuda())
+test_data = torch.utils.data.StackDataset(torch.Tensor(x_test).cuda(), torch.Tensor(y_test_).cuda())
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=8, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=8, shuffle=True)
 
-latent_dim = 16
-beta = 0.006
-
-model = VAE(data_x.shape[1], latent_dim).cuda()
+model = Model_LSTM(hidden_size=32, lstm_layers=2, mlp_layers=2, dropout=0.125).cuda()
+loss_func = torch.nn.L1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = Callback(optimizer, factor=0.5, patience=50, min_lr=1e-6)
 
@@ -39,9 +34,8 @@ for epoch in range(10000):
     start = time.time()
     model.train()
     train_loss = 0.
-    for step, x in enumerate(train_loader):
-        recon_x, mu, logvar = model(x)
-        loss = loss_function(recon_x, x, mu, logvar, beta)
+    for step, (x, y) in enumerate(train_loader):
+        loss = loss_func(model(x), y)
         loss.backward()
         train_loss += loss.item() * x.shape[0]
         optimizer.step()
@@ -49,9 +43,8 @@ for epoch in range(10000):
 
     model.eval()
     test_loss = 0.
-    for x in test_loader:
-        recon_x, mu, logvar = model(x, pooling=False)
-        loss = loss_function(recon_x, x, mu, logvar, beta)
+    for x, y in test_loader:
+        loss = loss_func(model(x), y)
         test_loss += loss.item() * x.shape[0]
 
     print(f'Epoch {epoch + 1:04d} | step {step + 1}/{step + 1} | loss {train_loss / len(train_data):.4f}'
@@ -60,6 +53,12 @@ for epoch in range(10000):
     if not scheduler.step(train_loss):
         break
 
-file = 'model/VAE_Model'
+file = 'model/S2P_LSTM'
+if os.path.isdir(file):
+    i = 1
+    while os.path.isdir(f'{file}_{i}'):
+        i += 1
+    file = f'{file}_{i}'
 os.mkdir(file)
 torch.save(model, f'{file}/model.pth')
+joblib.dump(norm, f'{file}/norm.pkl')

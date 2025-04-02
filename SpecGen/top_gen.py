@@ -18,7 +18,7 @@ vae = torch.load(f'{vae_path}/model.pth')
 latent_dim = 16
 rng = np.random.RandomState(2)
 
-x = torch.Tensor(pd.read_excel('data/data.xlsx', sheet_name='UV').values).cuda()
+x = torch.Tensor(pd.read_excel('../data/data.xlsx', sheet_name='UV').values).cuda()
 data_uv = []
 data_op = []
 vae.eval()
@@ -51,12 +51,4 @@ pred[pred < 0] = 0
 pred /= pred.sum(axis=1, keepdims=True)
 pred = pd.DataFrame(pred, columns=['Co', 'Ni', 'Cu', 'Mg', 'Cd', 'Zn'])
 
-for i in range(pred.shape[0]):
-    if i == 0:
-        continue
-    else:
-        dis = np.abs(pred.iloc[i] - pred.iloc[:i]).sum(axis=1).min()
-        assert dis > 0.1
-
-with pd.ExcelWriter('best.xlsx') as writer:
-    pred.to_excel(writer, sheet_name='best', index=False)
+pred.to_excel('best.xlsx', sheet_name='best', index=False)

@@ -7,7 +7,6 @@ import os
 import time
 
 import joblib
-import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
@@ -15,8 +14,8 @@ from sklearn.preprocessing import StandardScaler
 
 from utils import Callback, Model
 
-data_x = pd.read_excel('data/data.xlsx', sheet_name='UV').values[:, np.newaxis, :]
-data_y = pd.read_excel('data/data.xlsx', sheet_name='overpotential').values
+data_x = pd.read_excel('../data/data.xlsx', sheet_name='UV').values[:, None]
+data_y = pd.read_excel('../data/data.xlsx', sheet_name='overpotential').values
 seed = 0
 x_train, x_test, y_train, y_test = train_test_split(data_x, data_y, test_size=0.2, random_state=seed)
 norm = StandardScaler().fit(y_train)
@@ -56,6 +55,11 @@ for epoch in range(1000):
         break
 
 file = 'model/S2P_Model'
+if os.path.isdir(file):
+    i = 1
+    while os.path.isdir(f'{file}_{i}'):
+        i += 1
+    file = f'{file}_{i}'
 os.mkdir(file)
 torch.save(model, f'{file}/model.pth')
 joblib.dump(norm, f'{file}/norm.pkl')
