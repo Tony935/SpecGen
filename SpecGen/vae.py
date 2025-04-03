@@ -20,9 +20,8 @@ def loss_function(recon_x, x, mu, logvar, beta):
 
 
 data_x = pd.read_excel('../data/data.xlsx', sheet_name='UV').values
-data_y = pd.read_excel('../data/data.xlsx', sheet_name='metals').values
 seed = 0
-x_train, x_test, y_train, y_test = train_test_split(data_x, data_y, test_size=0.2, random_state=seed)
+x_train, x_test = train_test_split(data_x, test_size=0.2, random_state=seed)
 train_data = torch.Tensor(x_train).cuda()
 test_data = torch.Tensor(x_test).cuda()
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=8, shuffle=True)

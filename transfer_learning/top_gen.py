@@ -3,16 +3,20 @@
 :File: top_gen.py
 :Author: zhoudl@mail.ustc.edu.cn
 """
+import sys
+
 import joblib
 import numpy as np
 import pandas as pd
 
+sys.path.append('../SpecGen')
+
 from utils import *
 
-s2p_path = 'model/S2P_Model'
+s2p_path = '../SpecGen/model/S2P_Model'
 s2p = torch.load(f'{s2p_path}/model.pth')
 norm_s2p = joblib.load(f'{s2p_path}/norm.pkl')
-vae_path = 'model/VAE_Model'
+vae_path = '../SpecGen/model/VAE_Model'
 vae = torch.load(f'{vae_path}/model.pth')
 
 latent_dim = 16
@@ -36,16 +40,21 @@ data_uv = torch.cat(data_uv)
 data_op = np.concatenate(data_op)
 data_uv = data_uv[data_op.argsort()[:20]]
 
-s2c_path = 'model/S2C_Model'
-pred = []
-col = pd.read_excel('../data/data.xlsx', sheet_name='metals').columns
-for m in col:  # ['Co', 'Ni', 'Cu', 'Mg', 'Cd', 'Zn']
-    s2c = torch.load(f'{s2c_path}/{m}/model.pth')
-    norm_s2c = joblib.load(f'{s2c_path}/{m}/norm.pkl')
-    s2c.eval()
-    with torch.no_grad():
-        pred.append(norm_s2c.inverse_transform(s2c(torch.unsqueeze(data_uv, 1)).cpu().numpy()).ravel())
-pred = np.array(pred).T
-pred[pred < 0] = 0
-pred /= pred.sum(axis=1, keepdims=True)
-pd.DataFrame(pred, columns=col).to_excel('best.xlsx', sheet_name='best', index=False)
+best = {}
+for system in ['A', 'B', 'C', 'D']:
+    s2c_path = f'model/S2C_Model_{system}'
+    pred = []
+    col = pd.read_excel(f'../data/transfer_{system}.xlsx', sheet_name='metals').columns
+    for m in col:
+        s2c = torch.load(f'{s2c_path}/{m}/model.pth')
+        norm_s2c = joblib.load(f'{s2c_path}/{m}/norm.pkl')
+        s2c.eval()
+        with torch.no_grad():
+            pred.append(norm_s2c.inverse_transform(s2c(torch.unsqueeze(data_uv, 1)).cpu().numpy()).ravel())
+    pred = np.array(pred).T
+    pred[pred < 0] = 0
+    pred /= pred.sum(axis=1, keepdims=True)
+    best[system] = pd.DataFrame(pred, columns=col)
+with pd.ExcelWriter(f'best_transfer.xlsx') as writer:
+    for system in ['A', 'B', 'C', 'D']:
+        best[system].to_excel(writer, sheet_name=system, index=False)

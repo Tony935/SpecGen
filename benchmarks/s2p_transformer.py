@@ -26,7 +26,7 @@ train_loader = torch.utils.data.DataLoader(train_data, batch_size=8, shuffle=Tru
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=8, shuffle=True)
 
 model = SimpleViT(seq_len=720, patch_size=720, num_classes=1, dim=64, depth=1,
-                  heads=1, mlp_dim=16, channels=1, dim_head=32, dropout=0.25)
+                  heads=1, mlp_dim=16, channels=1, dim_head=32, dropout=0.25).cuda()
 loss_func = torch.nn.L1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = Callback(optimizer, factor=0.5, patience=20, min_lr=1e-6)

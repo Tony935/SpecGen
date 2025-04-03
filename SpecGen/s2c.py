@@ -41,7 +41,7 @@ for m in col:
 
     model = Model(data_y_.shape[1], dropout=dropout[m]).cuda()
     loss_func = torch.nn.L1Loss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # weight_decay=1e-3
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     scheduler = Callback(optimizer, factor=0.5, patience=50, min_lr=1e-6)
 
     for epoch in range(1000):
